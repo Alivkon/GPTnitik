@@ -11,7 +11,7 @@ from pydub.exceptions import CouldntDecodeError
 from config import OPENAI_API_KEY
 from utils import create_temp_file, cleanup_temp_file
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # Инициализируем клиент OpenAI
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
@@ -48,7 +48,7 @@ async def convert_to_wav(input_path: Path, max_duration_minutes: int = 7) -> Pat
         # Экспортируем в WAV
         audio.export(str(output_path), format="wav")
         
-        #logger.info(f"Аудио сконвертировано: {duration_minutes:.1f} мин, {output_path}")
+        logger.info(f"Аудио сконвертировано: {duration_minutes:.1f} мин, {output_path}")
         return output_path
         
     except CouldntDecodeError:
@@ -56,7 +56,7 @@ async def convert_to_wav(input_path: Path, max_duration_minutes: int = 7) -> Pat
         raise ValueError("Не удалось декодировать аудиофайл. Возможно, файл поврежден.")
     except Exception as e:
         cleanup_temp_file(output_path)
-        #logger.error(f"Ошибка конвертации аудио: {e}")
+        logger.error(f"Ошибка конвертации аудио: {e}")
         raise ValueError(f"Ошибка обработки аудио: {str(e)}")
 
 async def speech_to_text(file_path: Path) -> str:
@@ -100,12 +100,14 @@ async def speech_to_text(file_path: Path) -> str:
         if not text:
             raise ValueError("Не удалось распознать речь. Попробуйте говорить громче и четче.")
         
-        #logger.info(f"STT успешно: {len(text)} символов")
+        logger.info(f"STT успешно: {len(text)} символов")
         return text
         
     except Exception as e:
-        #logger.error(f"Ошибка STT: {e}")
-        if "rate limit" in str(e).lower():
+        logger.error(f"Ошибка STT: {e}")
+        if "insufficient_quota" in str(e).lower() or "quota" in str(e).lower():
+            raise ValueError("Превышен лимит использования сервиса распознавания речи. Обратитесь к администратору.")
+        elif "rate limit" in str(e).lower():
             raise ValueError("Слишком много запросов. Попробуйте через минуту.")
         elif "invalid" in str(e).lower():
             raise ValueError("Не удалось обработать аудиофайл. Попробуйте записать заново.")
@@ -130,7 +132,8 @@ async def get_audio_duration(file_path: Path) -> float:
     try:
         audio = AudioSegment.from_file(str(file_path))
         duration = len(audio) / 1000.0  # длительность в секундах
-        print(f"Длительность аудио {file_path}: {duration:.2f} секунд")
+        logger.info(f"Длительность аудио {file_path}: {duration:.2f} секунд")
+        return duration
     except Exception as e:
-        #logger.error(f"Ошибка получения длительности аудио: {e}")
+        logger.error(f"Ошибка получения длительности аудио: {e}")
         return 0.0

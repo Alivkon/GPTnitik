@@ -18,7 +18,7 @@ load_dotenv()
 #        logging.StreamHandler()
 #    ]
 #)
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # Конфигурация
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -28,6 +28,10 @@ ADMIN_IDS = [
     int(os.getenv('ADMIN_ID_2', 0))
 ]
 DEBUG_SEND_VOICE = os.getenv('DEBUG_SEND_VOICE', 'false').lower() == 'true'
+
+# Лимиты пользователей
+MAX_MESSAGES_PER_SESSION = int(os.getenv('MAX_MESSAGES_PER_SESSION', 10))
+SESSION_DURATION_MINUTES = int(os.getenv('SESSION_DURATION_MINUTES', 30))
 
 # Пути
 DATA_DIR = Path('data')
@@ -55,17 +59,17 @@ def read_prompt() -> str:
             write_prompt(DEFAULT_PROMPT)
             return DEFAULT_PROMPT
     except Exception as e:
-        #logger.error(f"Ошибка чтения промпта: {e}")
+        logger.error(f"Ошибка чтения промпта: {e}")
         return DEFAULT_PROMPT
 
 def write_prompt(prompt: str) -> bool:
     """Записывает системный промпт в файл"""
     try:
         PROMPT_FILE.write_text(prompt, encoding='utf-8')
-        #logger.info(f"Промпт обновлён: {prompt[:50]}...")
+        logger.info(f"Промпт обновлён: {prompt[:50]}...")
         return True
     except Exception as e:
-        #logger.error(f"Ошибка записи промпта: {e}")
+        logger.error(f"Ошибка записи промпта: {e}")
         return False
 
 def reset_prompt() -> bool:
@@ -78,4 +82,4 @@ if not TELEGRAM_TOKEN:
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY не найден в .env файле")
 if not any(ADMIN_IDS):
-    #logger.warning("Администраторы не настроены в .env файле")
+    pass  # logger.warning("Администраторы не настроены в .env файле")

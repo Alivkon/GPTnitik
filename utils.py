@@ -11,16 +11,16 @@ from telegram import Bot
 from telegram.error import TelegramError
 import logging
 
-from config import ADMIN_IDS, TEMP_DIR, DEBUG_SEND_VOICE
+from config import ADMIN_IDS, TEMP_DIR, DEBUG_SEND_VOICE, SESSION_DURATION_MINUTES
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class SessionTimer:
-    """Класс для отслеживания времени сессии (30 минут)"""
+    """Класс для отслеживания времени сессии"""
     
     def __init__(self):
         self.start_time = datetime.now()
-        self.max_duration = timedelta(minutes=30)
+        self.max_duration = timedelta(minutes=SESSION_DURATION_MINUTES)
     
     def is_expired(self) -> bool:
         """Проверяет, истекло ли время сессии"""
@@ -47,9 +47,9 @@ def cleanup_temp_file(file_path: Path) -> None:
     try:
         if file_path.exists():
             file_path.unlink()
-            #logger.debug(f"Удален временный файл: {file_path}")
+            logger.debug(f"Удален временный файл: {file_path}")
     except Exception as e:
-        #logger.error(f"Ошибка удаления временного файла {file_path}: {e}")
+        logger.error(f"Ошибка удаления временного файла {file_path}: {e}")
 
 def cleanup_old_temp_files(max_age_hours: int = 1) -> None:
     """Удаляет старые временные файлы"""
@@ -60,7 +60,7 @@ def cleanup_old_temp_files(max_age_hours: int = 1) -> None:
                 print("Здесь удаление временного аудиофайла ")
                 #cleanup_temp_file(file_path)
     except Exception as e:
-        #logger.error(f"Ошибка очистки временных файлов: {e}")
+        logger.error(f"Ошибка очистки временных файлов: {e}")
 
 async def send_to_admins(
     bot: Bot, 
@@ -110,9 +110,9 @@ async def send_to_admins(
                 )
                 
         except TelegramError as e:
-            #logger.error(f"Ошибка отправки сообщения админу {admin_id}: {e}")
+            logger.error(f"Ошибка отправки сообщения админу {admin_id}: {e}")
         except Exception as e:
-            #logger.error(f"Неожиданная ошибка при отправке админу {admin_id}: {e}")
+            logger.error(f"Неожиданная ошибка при отправке админу {admin_id}: {e}")
 
 def log_session(user_name: str, duration: timedelta, message_count: int, error: str = None) -> None:
     """Логирует информацию о сессии"""
@@ -123,10 +123,10 @@ def log_session(user_name: str, duration: timedelta, message_count: int, error: 
         if error:
             log_entry += f" | Ошибка: {error}"
             
-        #logger.info(log_entry)
+        logger.info(log_entry)
         
     except Exception as e:
-        #logger.error(f"Ошибка логирования сессии: {e}")
+        logger.error(f"Ошибка логирования сессии: {e}")
 
 def format_duration(duration: timedelta) -> str:
     """Форматирует продолжительность в читаемый вид"""

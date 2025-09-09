@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 
 from config import is_admin, read_prompt, write_prompt, reset_prompt
 
-##logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 async def cmd_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -30,10 +30,10 @@ async def cmd_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             parse_mode='Markdown'
         )
         
-        #logger.info(f"Админ {user_id} запросил текущий промпт")
+        logger.info(f"Админ {user_id} запросил текущий промпт")
         
     except Exception as e:
-        #logger.error(f"Ошибка команды /prompt: {e}")
+        logger.error(f"Ошибка команды /prompt: {e}")
         await update.message.reply_text("❌ Ошибка при получении промпта.")
 
 async def cmd_setprompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -72,12 +72,12 @@ async def cmd_setprompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         
         if success:
             await update.message.reply_text("✅ Промпт обновлён.")
-            #logger.info(f"Админ {user_id} обновил промпт: {new_prompt[:50]}...")
+            logger.info(f"Админ {user_id} обновил промпт: {new_prompt[:50]}...")
         else:
             await update.message.reply_text("❌ Ошибка при сохранении промпта.")
             
     except Exception as e:
-        #logger.error(f"Ошибка команды /setprompt: {e}")
+        logger.error(f"Ошибка команды /setprompt: {e}")
         await update.message.reply_text("❌ Ошибка при обновлении промпта.")
 
 async def cmd_resetprompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -96,12 +96,12 @@ async def cmd_resetprompt(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         if success:
             await update.message.reply_text("✅ Промпт сброшен к значению по умолчанию.")
-            #logger.info(f"Админ {user_id} сбросил промпт к значению по умолчанию")
+            logger.info(f"Админ {user_id} сбросил промпт к значению по умолчанию")
         else:
             await update.message.reply_text("❌ Ошибка при сбросе промпта.")
             
     except Exception as e:
-        #logger.error(f"Ошибка команды /resetprompt: {e}")
+        logger.error(f"Ошибка команды /resetprompt: {e}")
         await update.message.reply_text("❌ Ошибка при сбросе промпта.")
 
 async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -116,7 +116,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     
     try:
-        from config import DEBUG_SEND_VOICE, ADMIN_IDS
+        from config import DEBUG_SEND_VOICE, ADMIN_IDS, MAX_MESSAGES_PER_SESSION, SESSION_DURATION_MINUTES
         from utils import TEMP_DIR
         import os
         
@@ -138,6 +138,10 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 • DEBUG_SEND_VOICE: {DEBUG_SEND_VOICE}
 • Администраторов: {len([aid for aid in ADMIN_IDS if aid != 0])}
 
+⏱️ **Лимиты сессий:**
+• Максимум сообщений: {MAX_MESSAGES_PER_SESSION}
+• Длительность сессии: {SESSION_DURATION_MINUTES} минут
+
 📁 **Временные файлы:**
 • Количество: {temp_files_count}
 • Размер: {temp_dir_size_mb:.2f} MB
@@ -151,10 +155,10 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             parse_mode='Markdown'
         )
         
-        #logger.info(f"Админ {user_id} запросил статистику")
+        logger.info(f"Админ {user_id} запросил статистику")
         
     except Exception as e:
-        #logger.error(f"Ошибка команды /stats: {e}")
+        logger.error(f"Ошибка команды /stats: {e}")
         await update.message.reply_text("❌ Ошибка при получении статистики.")
 
 async def cmd_cleanup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -175,8 +179,8 @@ async def cmd_cleanup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         cleanup_old_temp_files(max_age_hours=1)
         
         await update.message.reply_text("✅ Временные файлы очищены.")
-        #logger.info(f"Админ {user_id} запустил очистку временных файлов")
+        logger.info(f"Админ {user_id} запустил очистку временных файлов")
         
     except Exception as e:
-        #logger.error(f"Ошибка команды /cleanup: {e}")
+        logger.error(f"Ошибка команды /cleanup: {e}")
         await update.message.reply_text("❌ Ошибка при очистке файлов.")

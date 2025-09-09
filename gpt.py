@@ -8,7 +8,7 @@ from openai import AsyncOpenAI
 
 from config import OPENAI_API_KEY, read_prompt
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # Инициализируем клиент OpenAI
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
@@ -58,16 +58,16 @@ async def get_gpt_response(text: str, user_name: str = "Пользователь
         if not gpt_text:
             raise ValueError("GPT вернул пустой ответ")
         
-        #logger.info(f"GPT ответ получен: {len(gpt_text)} символов")
+        logger.info(f"GPT ответ получен: {len(gpt_text)} символов")
         return gpt_text
         
     except Exception as e:
-        #logger.error(f"Ошибка GPT: {e}")
+        logger.error(f"Ошибка GPT: {e}")
         
-        if "rate limit" in str(e).lower():
-            raise ValueError("Слишком много запросов к GPT. Попробуйте через минуту.")
-        elif "quota" in str(e).lower():
+        if "insufficient_quota" in str(e).lower() or "quota" in str(e).lower():
             raise ValueError("Превышен лимит использования GPT. Обратитесь к администратору.")
+        elif "rate limit" in str(e).lower():
+            raise ValueError("Слишком много запросов к GPT. Попробуйте через минуту.")
         elif "invalid" in str(e).lower():
             raise ValueError("Ошибка обработки запроса. Попробуйте переформулировать.")
         else:
@@ -116,7 +116,7 @@ async def get_gpt_response_stream(text: str, user_name: str = "Пользова�
                 yield chunk.choices[0].delta.content
                 
     except Exception as e:
-        #logger.error(f"Ошибка потокового GPT: {e}")
+        logger.error(f"Ошибка потокового GPT: {e}")
         yield "Извини, произошла ошибка при генерации ответа."
 
 def validate_user_input(text: str) -> bool:

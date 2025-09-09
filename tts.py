@@ -8,16 +8,8 @@ from openai import AsyncOpenAI
 
 from config import OPENAI_API_KEY
 from utils import create_temp_file, cleanup_temp_file
-# Настройка логирования
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG,  # Изменили на DEBUG для более подробных логов
-    handlers=[
-        logging.FileHandler('session.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-#logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 # Инициализируем клиент OpenAI
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
@@ -44,7 +36,7 @@ async def text_to_speech(text: str, output_path: Path = None) -> Path:
         if len(text) > 4096:
             # OpenAI TTS имеет лимит на длину текста
             text = text[:4090] + "..."
-            #logger.warning("Текст обрезан до лимита TTS")
+            logger.warning("Текст обрезан до лимита TTS")
         
         if not text.strip():
             raise ValueError("Пустой текст для озвучивания")
@@ -66,11 +58,11 @@ async def text_to_speech(text: str, output_path: Path = None) -> Path:
         if not output_path.exists() or output_path.stat().st_size == 0:
             raise ValueError("Не удалось создать аудиофайл")
         
-        #logger.info(f"TTS успешно: {len(text)} символов -> {output_path}")
+        logger.info(f"TTS успешно: {len(text)} символов -> {output_path}")
         return output_path
         
     except Exception as e:
-        #logger.error(f"Ошибка TTS: {e}")
+        logger.error(f"Ошибка TTS: {e}")
         
         # Очищаем файл при ошибке
         if output_path and output_path.exists():
@@ -113,7 +105,7 @@ async def validate_audio_file(file_path: Path) -> bool:
         return False
         
     except Exception as e:
-        #logger.error(f"Ошибка валидации аудиофайла: {e}")
+        logger.error(f"Ошибка валидации аудиофайла: {e}")
         return False
 
 def prepare_text_for_tts(text: str) -> str:
