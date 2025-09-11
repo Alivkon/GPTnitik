@@ -41,6 +41,7 @@ from stt import speech_to_text, get_audio_duration
 from gpt import get_gpt_response, validate_user_input
 from tts import text_to_speech, prepare_text_for_tts
 from admin import cmd_prompt, cmd_setprompt, cmd_resetprompt, cmd_stats, cmd_cleanup
+from scheduler import daily_scheduler
 
 # Состояния FSM
 AWAIT_NAME, MAIN_MENU, RECORDING = range(3)
@@ -60,6 +61,20 @@ class PsychologyBot:
         logger.debug(f"[START] Update: {update}")
         logger.debug(f"[START] Chat ID: {update.effective_chat.id}")
         
+        # Проверяем, не заблокирован ли пользователь
+        try:
+            from user_limits import user_limit_manager
+            if user_limit_manager.is_user_blocked(user_id):
+                logger.info(f"[START] Пользователь {user_id} заблокирован, отказываем в доступе")
+                await update.message.reply_text(
+                    f"❌ Ваш период эксплуатации бота истёк.\n\n"
+                    f"Вы превысили лимиты использования ({MAX_MESSAGES_PER_SESSION} запросов или {SESSION_DURATION_MINUTES} минут).\n"
+                    f"Для восстановления доступа обратитесь к администратору."
+                )
+                return ConversationHandler.END
+        except Exception as e:
+            logger.error(f"[START] Ошибка проверки блокировки пользователя {user_id}: {e}")
+        
         # Инициализируем данные пользователя
         context.user_data.clear()
         context.user_data['user_id'] = user_id
@@ -73,7 +88,7 @@ class PsychologyBot:
         
         # Приветственное сообщение
         welcome_text = (
-            "Привет! Это пространство, где можно поныть, не боясь осуждения. "
+            "Привет! Это пространство для доверительного общения, где нет места осуждению. "
             "Я здесь, чтобы выслушать и поддержать.\n\n"
             "Как к тебе можно обращаться? (имя необязательно)"
         )
@@ -409,6 +424,30 @@ class PsychologyBot:
         timer = context.user_data.get('timer')
         user_name = context.user_data.get('name', 'Пользователь')
         message_count = context.user_data.get('message_count', 0)
+        user_id = update.effective_user.id
+        user = update.effective_user
+        
+        # Проверяем лимиты и блокируем пользователя при необходимости
+        try:
+            from user_limits import user_limit_manager
+            
+            session_duration_minutes = 0
+            if timer:
+                session_duration_minutes = int(timer.elapsed_time() / 60)
+            
+            # Проверяем, нужно ли заблокировать пользователя
+            should_block = user_limit_manager.check_user_limits(
+                user_id=user_id,
+                message_count=message_count,
+                session_duration_minutes=session_duration_minutes,
+                username=user.username,
+                first_name=user.first_name
+            )
+            
+            if should_block:
+                logger.info(f"[END_SESSION] Пользователь {user_id} заблокирован за превышение лимитов")
+        except Exception as e:
+            logger.error(f"[END_SESSION] Ошибка проверки лимитов для пользователя {user_id}: {e}")
         
         # Логируем сессию
         if timer:
@@ -527,6 +566,26 @@ class PsychologyBot:
         self.application.add_handler(CommandHandler('stats', cmd_stats))
         self.application.add_handler(CommandHandler('cleanup', cmd_cleanup))
         
+        # Команды управления заблокированными пользователями
+        from admin import cmd_blocked_users, cmd_unblock_user, cmd_block_user, cmd_cleanup_blocks, cmd_clear_all_blocks
+        self.application.add_handler(CommandHandler('blocked', cmd_blocked_users))
+        self.application.add_handler(CommandHandler('unblock', cmd_unblock_user))
+        self.application.add_handler(CommandHandler('block', cmd_block_user))
+        self.application.add_handler(CommandHandler('cleanup_blocks', cmd_cleanup_blocks))
+        self.application.add_handler(CommandHandler('clearblocks', cmd_clear_all_blocks))
+        
+        # Команды управления лимитами
+        from admin import cmd_limits, cmd_setlimits, cmd_resetlimits
+        self.application.add_handler(CommandHandler('limits', cmd_limits))
+        self.application.add_handler(CommandHandler('setlimits', cmd_setlimits))
+        self.application.add_handler(CommandHandler('resetlimits', cmd_resetlimits))
+        
+        # Команды управления токенами
+        from admin import cmd_tokens, cmd_settokens, cmd_resettokens
+        self.application.add_handler(CommandHandler('tokens', cmd_tokens))
+        self.application.add_handler(CommandHandler('settokens', cmd_settokens))
+        self.application.add_handler(CommandHandler('resettokens', cmd_resettokens))
+        
         # Обработчик ошибок
         self.application.add_error_handler(self.error_handler)
     
@@ -544,6 +603,9 @@ class PsychologyBot:
         await self.application.initialize()
         
         try:
+            # Запускаем планировщик ежедневной очистки
+            await daily_scheduler.start()
+            
             # Запускаем бота
             await self.application.start()
             await self.application.updater.start_polling(
@@ -558,6 +620,9 @@ class PsychologyBot:
         except KeyboardInterrupt:
             logger.info("Получен сигнал остановки")
         finally:
+            # Останавливаем планировщик
+            await daily_scheduler.stop()
+            
             # Корректно останавливаем бота
             await self.application.updater.stop()
             await self.application.stop()

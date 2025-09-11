@@ -6,7 +6,7 @@ import logging
 from typing import AsyncGenerator
 from openai import AsyncOpenAI
 
-from config import OPENAI_API_KEY, read_prompt
+from config import OPENAI_API_KEY, read_prompt, MAX_TOKENS
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ async def get_gpt_response(text: str, user_name: str = "Пользователь
         response = await client.chat.completions.create(
             model="gpt-4",
             messages=messages,
-            max_tokens=500,  # Ограничиваем длину ответа для краткости
+            max_tokens=MAX_TOKENS,  # Ограничиваем длину ответа (настраивается в .env)
             temperature=0.7,  # Немного креативности, но не слишком много
             presence_penalty=0.1,  # Избегаем повторений
             frequency_penalty=0.1
@@ -104,7 +104,7 @@ async def get_gpt_response_stream(text: str, user_name: str = "Пользова�
         stream = await client.chat.completions.create(
             model="gpt-4",
             messages=messages,
-            max_tokens=500,
+            max_tokens=MAX_TOKENS,
             temperature=0.7,
             presence_penalty=0.1,
             frequency_penalty=0.1,

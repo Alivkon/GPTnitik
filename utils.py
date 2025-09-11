@@ -114,6 +114,39 @@ async def send_to_admins(
         except Exception as e:
             logger.error(f"Неожиданная ошибка при отправке админу {admin_id}: {e}")
 
+async def send_to_admins_text(message: str, bot: Bot = None) -> None:
+    """
+    Отправляет текстовое сообщение всем администраторам
+    
+    Args:
+        message: Текст сообщения
+        bot: Экземпляр бота (если не передан, создается новый)
+    """
+    if not ADMIN_IDS:
+        return
+    
+    # Если бот не передан, создаем новый экземпляр
+    if bot is None:
+        from config import TELEGRAM_TOKEN
+        bot = Bot(token=TELEGRAM_TOKEN)
+    
+    for admin_id in ADMIN_IDS:
+        if admin_id == 0:  # Пропускаем некорректные ID
+            continue
+            
+        try:
+            await bot.send_message(
+                chat_id=admin_id,
+                text=message,
+                parse_mode='Markdown'
+            )
+            logger.debug(f"Уведомление отправлено администратору {admin_id}")
+                
+        except TelegramError as e:
+            logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при отправке уведомления админу {admin_id}: {e}")
+
 def log_session(user_name: str, duration: timedelta, message_count: int, error: str = None) -> None:
     """Логирует информацию о сессии"""
     try:

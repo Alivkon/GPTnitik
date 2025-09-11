@@ -1,5 +1,8 @@
-python-telegram-bot==20.7
-openai==1.12.0
+python-telegram-bot==22.3
+openai==1.107.0
 pydub==0.25.1
 python-dotenv==1.0.0
 asyncio
+httpx==0.28.1
+audioop-lts: 0.2.2
+
